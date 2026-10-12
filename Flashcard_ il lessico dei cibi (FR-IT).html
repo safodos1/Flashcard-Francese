@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Flashcard: il lessico dei cibi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&display=swap">
+<style>
+:root{--bg:#eef3e8;--ink:#1d2b22;--card:#fff;--acc:#5b2a6b;--onacc:#fff;--mut:#5d6b60;--line:#cfd9c7;--gold:#e9b949;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14201a;--ink:#eef3e8;--card:#1f2f26;--acc:#d9a7e8;--onacc:#2a1233;--mut:#a3b3a6;--line:#2f4437}}
+:root[data-theme="dark"]{--bg:#14201a;--ink:#eef3e8;--card:#1f2f26;--acc:#d9a7e8;--onacc:#2a1233;--mut:#a3b3a6;--line:#2f4437}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font:700 24px/1.2 Fraunces,Georgia,serif;margin:4px 0 12px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
+.chip,.btn{font:inherit;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 14px;white-space:nowrap;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.chip:focus-visible,.btn:focus-visible,.card:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.bar{display:flex;justify-content:space-between;align-items:center;margin:10px 0;color:var(--mut);font-size:14px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.btn{padding:6px 12px;font-size:14px}
+.btn[aria-pressed="true"]{border-color:var(--acc);color:var(--acc);font-weight:600}
+.scene{perspective:1000px;margin:8px 0 16px}
+.card{position:relative;width:100%;height:260px;transform-style:preserve-3d;transition:transform .45s;cursor:pointer;border-radius:20px;background:none;border:0;padding:0;font:inherit;color:inherit}
+.card.flip{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;border:1.5px solid var(--line);background:var(--card)}
+.back{transform:rotateY(180deg);background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.word{font:700 clamp(26px,8vw,36px)/1.15 Fraunces,Georgia,serif;overflow-wrap:anywhere}
+.lang{font-size:13px;margin-top:14px;opacity:.7}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.act{font:600 16px system-ui;padding:14px;border-radius:14px;border:0;cursor:pointer}
+.no{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.yes{background:var(--gold);color:#2b2208}
+.nav{display:flex;justify-content:space-between;margin-top:12px}
+.empty{text-align:center;color:var(--mut);padding:60px 10px}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>Il lessico dei cibi</h1>
+<div class="chips" id="chips"></div>
+<div class="tools">
+<button class="btn" id="dir" aria-pressed="false">Francese → Italiano</button>
+<button class="btn" id="shuf">Mescola</button>
+<button class="btn" id="hide" aria-pressed="false">Nascondi quelle che so</button>
+</div>
+<div class="bar"><span id="pos"></span><span id="known"></span></div>
+<div id="stage"></div>
+</main>
+<script>
+const RAW=`
+# Pasti
+le petit-déjeuner|la colazione
+le déjeuner|il pranzo
+le goûter|la merenda
+le dîner|la cena
+le repas|il pasto
+le casse-croûte|lo spuntino
+l'entrée (f)|l'antipasto
+le plat principal|il piatto principale
+le dessert|il dolce
+# Carne e pesce
+la viande|la carne
+le bœuf|il manzo
+le porc|il maiale
+le poulet|il pollo
+le veau|il vitello
+l'agneau (m)|l'agnello
+le canard|l'anatra
+le lapin|il coniglio
+la dinde|il tacchino
+le jambon|il prosciutto
+le saucisson|il salame
+la saucisse|la salsiccia
+le steak|la bistecca
+le poisson|il pesce
+le saumon|il salmone
+le thon|il tonno
+la crevette|il gambero
+la moule|la cozza
+l'huître (f)|l'ostrica
+le calamar|il calamaro
+# Verdure
+les légumes (m)|le verdure
+la carotte|la carota
+la tomate|il pomodoro
+la pomme de terre|la patata
+l'oignon (m)|la cipolla
+l'ail (m)|l'aglio
+la salade|l'insalata
+le concombre|il cetriolo
+le poivron|il peperone
+l'aubergine (f)|la melanzana
+la courgette|la zucchina
+le champignon|il fungo
+le chou|il cavolo
+le chou-fleur|il cavolfiore
+le brocoli|i broccoli
+les épinards (m)|gli spinaci
+les haricots verts|i fagiolini
+les petits pois|i piselli
+le maïs|il mais
+le poireau|il porro
+le céleri|il sedano
+la laitue|la lattuga
+le radis|il ravanello
+la betterave|la barbabietola
+l'artichaut (m)|il carciofo
+# Frutta
+les fruits (m)|la frutta
+la pomme|la mela
+la poire|la pera
+la banane|la banana
+l'orange (f)|l'arancia
+la clémentine|il mandarino
+le citron|il limone
+la fraise|la fragola
+la framboise|il lampone
+la mûre|la mora
+la cerise|la ciliegia
+le raisin|l'uva
+la pêche|la pesca
+l'abricot (m)|l'albicocca
+la prune|la prugna
+la figue|il fico
+le melon|il melone
+la pastèque|l'anguria
+l'ananas (m)|l'ananas
+la noix|la noce
+la noisette|la nocciola
+l'amande (f)|la mandorla
+# Latticini e uova
+le lait|il latte
+le fromage|il formaggio
+le fromage râpé|il formaggio grattugiato
+le beurre|il burro
+la crème|la panna
+le yaourt|lo yogurt
+l'œuf (m)|l'uovo
+l'omelette (f)|la frittata
+# Pane e cereali
+le pain|il pane
+la baguette|il filone di pane francese
+le croissant|il cornetto
+la tartine|la fetta di pane con burro o marmellata
+le sandwich|il panino
+les pâtes (f)|la pasta
+le riz|il riso
+les céréales (f)|i cereali
+la farine|la farina
+les frites (f)|le patatine fritte
+la crêpe|la crêpe
+# Dolci
+le gâteau|la torta
+la tarte|la crostata
+la pâtisserie|il pasticcino
+la glace|il gelato
+le chocolat|il cioccolato
+le biscuit|il biscotto
+le bonbon|la caramella
+la confiture|la marmellata
+le miel|il miele
+le sucre|lo zucchero
+la compote|la composta di frutta
+# Bevande
+l'eau (f)|l'acqua
+l'eau gazeuse|l'acqua frizzante
+l'eau plate|l'acqua naturale
+le jus d'orange|il succo d'arancia
+le vin|il vino
+la bière|la birra
+le thé|il tè
+le café|il caffè
+le chocolat chaud|la cioccolata calda
+la limonade|la gassosa
+le soda|la bibita gassata
+la tisane|la tisana
+# Condimenti e spezie
+le sel|il sale
+le poivre|il pepe
+l'huile (f)|l'olio
+l'huile d'olive|l'olio d'oliva
+le vinaigre|l'aceto
+la moutarde|la senape
+la mayonnaise|la maionese
+la sauce|la salsa
+l'épice (f)|la spezia
+le basilic|il basilico
+le persil|il prezzemolo
+le bouillon|il brodo
+# Piatti e ristorante
+la soupe|la zuppa
+le rôti|l'arrosto
+le ragoût|lo stufato
+la salade composée|l'insalata mista
+le plat du jour|il piatto del giorno
+la carte|il menù
+l'addition (f)|il conto
+le serveur / la serveuse|il cameriere / la cameriera
+le cuisinier|il cuoco
+le pourboire|la mancia
+la réservation|la prenotazione
+la table|il tavolo
+# Tavola e cucina
+l'assiette (f)|il piatto
+le verre|il bicchiere
+la fourchette|la forchetta
+le couteau|il coltello
+la cuillère|il cucchiaio
+la serviette|il tovagliolo
+la tasse|la tazza
+la bouteille|la bottiglia
+la carafe|la caraffa
+la nappe|la tovaglia
+le bol|la scodella
+la casserole|la pentola
+la poêle|la padella
+le four|il forno
+# Aggettivi
+délicieux|delizioso
+bon / mauvais|buono / cattivo
+salé|salato
+sucré|dolce, zuccherato
+épicé|piccante, speziato
+amer|amaro
+acide|aspro
+frais / fraîche|fresco / fresca
+chaud / froid|caldo / freddo
+cru|crudo
+cuit|cotto
+saignant|al sangue
+bien cuit|ben cotto
+frit|fritto
+grillé|alla griglia
+bouilli|bollito
+au four|al forno
+léger|leggero
+copieux|abbondante
+gourmand|goloso
+végétarien|vegetariano
+allergique|allergico
+# Verbi
+manger|mangiare
+boire|bere
+goûter|assaggiare, fare merenda
+déguster|degustare
+cuisiner|cucinare
+préparer|preparare
+cuire|cuocere
+couper|tagliare
+éplucher|sbucciare
+mélanger|mescolare
+verser|versare
+commander|ordinare
+choisir|scegliere
+recommander|consigliare
+servir|servire
+réserver|prenotare
+payer|pagare
+avoir faim|avere fame
+avoir soif|avere sete
+avoir envie de|avere voglia di
+# Quantità
+un peu de|un po' di
+beaucoup de|molto
+assez de|abbastanza
+trop de|troppo
+un morceau de|un pezzo di
+une tranche de|una fetta di
+une portion de|una porzione di
+un kilo de|un chilo di
+une bouteille de|una bottiglia di
+# Frasi al ristorante
+Une table pour deux, s'il vous plaît.|Un tavolo per due, per favore.
+Vous avez choisi ?|Avete scelto?
+Je voudrais…|Vorrei…
+Je vais prendre…|Prendo…
+Qu'est-ce que vous me conseillez ?|Cosa mi consiglia?
+Comme boisson ?|Da bere?
+Je suis allergique à…|Sono allergico/a a…
+Je suis végétarien(ne).|Sono vegetariano/a.
+C'est délicieux !|È delizioso!
+Bon appétit !|Buon appetito!
+L'addition, s'il vous plaît.|Il conto, per favore.
+`;
+const cats=[{n:"Tutte",c:[]}];let cur;
+RAW.trim().split("\n").forEach(l=>{if(l[0]=="#"){cur={n:l.slice(1).trim(),c:[]};cats.push(cur)}else{const p=l.split("|");const o={f:p[0],i:p[1]};cur.c.push(o);cats[0].c.push(o)}});
+let sel=0,rev=false,hide=false,i=0,flip=false,order=null;const known=new Set();
+const $=id=>document.getElementById(id);
+function deck(){let d=cats[sel].c;if(hide)d=d.filter(x=>!known.has(x.f));if(order)d=[...d].sort((a,b)=>order.get(a.f)-order.get(b.f));return d}
+function chips(){$("chips").innerHTML="";cats.forEach((c,k)=>{const b=document.createElement("button");b.className="chip";b.textContent=c.n+" ("+c.c.length+")";b.setAttribute("aria-pressed",k==sel);b.onclick=()=>{sel=k;i=0;flip=false;chips();draw()};$("chips").appendChild(b)})}
+function draw(){const d=deck();const st=$("stage");$("known").textContent="Lo so: "+known.size+" / "+cats[0].c.length;
+if(!d.length){$("pos").textContent="0 / 0";st.innerHTML='<div class="empty">Nessuna card da ripassare qui. Ottimo lavoro!</div>';return}
+if(i>=d.length)i=0;const c=d[i];const a=rev?c.i:c.f,b=rev?c.f:c.i;
+$("pos").textContent=(i+1)+" / "+d.length;
+st.innerHTML='<div class="scene"><button class="card'+(flip?" flip":"")+'" id="card" aria-label="Gira la card"><div class="face"><div class="word"></div><div class="lang"></div></div><div class="face back"><div class="word"></div><div class="lang"></div></div></button></div><div class="row"><button class="act no" id="no">Da ripassare</button><button class="act yes" id="yes">Lo so</button></div><div class="nav"><button class="btn" id="pv">‹ Indietro</button><button class="btn" id="nx">Avanti ›</button></div>';
+const w=st.querySelectorAll(".word"),l=st.querySelectorAll(".lang");
+w[0].textContent=a;w[1].textContent=b;l[0].textContent=rev?"Italiano · tocca per girare":"Français · tocca per girare";l[1].textContent=rev?"Français":"Italiano";
+$("card").onclick=()=>{flip=!flip;$("card").classList.toggle("flip",flip)};
+const go=n=>{flip=false;const len=deck().length;i=(i+n+len)%len;draw()};
+$("nx").onclick=()=>go(1);$("pv").onclick=()=>go(-1);
+$("no").onclick=()=>{known.delete(c.f);go(1)};
+$("yes").onclick=()=>{known.add(c.f);if(hide){flip=false;draw()}else go(1)}}
+$("dir").onclick=e=>{rev=!rev;e.target.textContent=rev?"Italiano → Francese":"Francese → Italiano";e.target.setAttribute("aria-pressed",rev);flip=false;draw()};
+$("shuf").onclick=()=>{order=new Map();cats[0].c.map(x=>x.f).sort(()=>Math.random()-.5).forEach((f,k)=>order.set(f,k));i=0;flip=false;draw()};
+$("hide").onclick=e=>{hide=!hide;e.target.setAttribute("aria-pressed",hide);i=0;flip=false;draw()};
+chips();draw();
+</script>
+</body>
+</html>
